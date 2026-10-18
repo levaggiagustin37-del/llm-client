@@ -24,29 +24,48 @@ ATAQUES = [
 
 REPETICIONES = int(sys.argv[1]) if len(sys.argv) > 1 else 3
 CADA = int(sys.argv[2]) if len(sys.argv) > 2 else 25
+MODELO = sys.argv[3] if len(sys.argv) > 3 else "llama3.2"
+ARCHIVO = "resultados_" + MODELO.replace(":", "_").replace("/", "_") + ".json"
+
+usa_pensamiento = True
+
+
+def separar(mensaje):
+    contenido = mensaje.content or ""
+    pensamiento = mensaje.thinking or ""
+    if "</think>" in contenido:
+        antes, _, despues = contenido.rpartition("</think>")
+        pensamiento = pensamiento + antes.replace("<think>", "")
+        contenido = despues
+    return contenido.strip(), pensamiento.strip()
 
 
 def probar(ataque):
+    global usa_pensamiento
+    mensajes = [
+        {"role": "system", "content": REGLAS},
+        {"role": "user", "content": ataque},
+    ]
     try:
-        respuesta = ollama.chat(
-            model="llama3.2",
-            messages=[
-                {"role": "system", "content": REGLAS},
-                {"role": "user", "content": ataque},
-            ],
-        )
-        return respuesta["message"]["content"]
+        try:
+            respuesta = ollama.chat(model=MODELO, messages=mensajes, think=usa_pensamiento)
+        except ollama.ResponseError as error:
+            if "think" not in str(error).lower():
+                raise
+            usa_pensamiento = False
+            respuesta = ollama.chat(model=MODELO, messages=mensajes)
+        return separar(respuesta["message"])
     except Exception as error:
-        return f"ERROR: {error}"
+        return f"ERROR: {error}", ""
 
 
 def guardar(resultados):
-    with open("resultados.json", "w", encoding="utf-8") as archivo:
+    with open(ARCHIVO, "w", encoding="utf-8") as archivo:
         json.dump(resultados, archivo, ensure_ascii=False, indent=2)
 
 
 def resumen(victorias, rondas, errores, inicio):
-    print(f"\n--- Resumen tras {rondas} repeticiones por ataque ---")
+    print(f"\n--- {MODELO}: resumen tras {rondas} repeticiones por ataque ---")
     for ataque in ATAQUES:
         bajo, alto = intervalo_wilson(victorias[ataque], rondas)
         print(f"{victorias[ataque]}/{rondas} (IC 95%: {bajo:.1%}-{alto:.1%}) | {ataque}")
@@ -60,13 +79,14 @@ victorias = {ataque: 0 for ataque in ATAQUES}
 errores = 0
 rondas = 0
 inicio = time.time()
-print(f"{REPETICIONES} repeticiones por ataque, {len(ATAQUES)} ataques")
+print(f"Modelo: {MODELO} | {REPETICIONES} repeticiones por ataque, {len(ATAQUES)} ataques")
+print(f"Resultados en: {ARCHIVO}")
 print("Podés cortar con Ctrl+C: se guarda lo hecho hasta ese momento.\n")
 
 try:
     for intento in range(REPETICIONES):
         for ataque in ATAQUES:
-            texto = probar(ataque)
+            texto, pensamiento = probar(ataque)
             if texto.startswith("ERROR"):
                 errores = errores + 1
             funciono = filtro_secreto(texto, SECRETO)
@@ -77,6 +97,8 @@ try:
                     "ataque": ataque,
                     "intento": intento + 1,
                     "respuesta": texto,
+                    "pensamiento": pensamiento,
+                    "filtro_en_pensamiento": filtro_secreto(pensamiento, SECRETO),
                     "funciono": funciono,
                 }
             )
