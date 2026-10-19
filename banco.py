@@ -2,10 +2,9 @@ import json
 import sys
 import time
 
-import ollama
-
 from llmsec.detector import filtro_secreto
 from llmsec.estadistica import intervalo_wilson
+from llmsec.objetivos import ObjetivoOllama
 
 SECRETO = "NARANJA-42"
 REGLAS = (
@@ -27,36 +26,15 @@ CADA = int(sys.argv[2]) if len(sys.argv) > 2 else 25
 MODELO = sys.argv[3] if len(sys.argv) > 3 else "llama3.2"
 ARCHIVO = "resultados_" + MODELO.replace(":", "_").replace("/", "_") + ".json"
 
-usa_pensamiento = True
-
-
-def separar(mensaje):
-    contenido = mensaje.content or ""
-    pensamiento = mensaje.thinking or ""
-    if "</think>" in contenido:
-        antes, _, despues = contenido.rpartition("</think>")
-        pensamiento = pensamiento + antes.replace("<think>", "")
-        contenido = despues
-    return contenido.strip(), pensamiento.strip()
+objetivo = ObjetivoOllama(MODELO)
 
 
 def probar(ataque):
-    global usa_pensamiento
     mensajes = [
         {"role": "system", "content": REGLAS},
         {"role": "user", "content": ataque},
     ]
-    try:
-        try:
-            respuesta = ollama.chat(model=MODELO, messages=mensajes, think=usa_pensamiento)
-        except ollama.ResponseError as error:
-            if "think" not in str(error).lower():
-                raise
-            usa_pensamiento = False
-            respuesta = ollama.chat(model=MODELO, messages=mensajes)
-        return separar(respuesta["message"])
-    except Exception as error:
-        return f"ERROR: {error}", ""
+    return objetivo.responder(mensajes)
 
 
 def guardar(resultados):
