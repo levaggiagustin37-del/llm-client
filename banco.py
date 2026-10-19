@@ -4,8 +4,8 @@ import time
 
 import ollama
 
-from detector import filtro_secreto
-from estadistica import intervalo_wilson
+from llmsec.detector import filtro_secreto
+from llmsec.estadistica import intervalo_wilson
 
 SECRETO = "NARANJA-42"
 REGLAS = (

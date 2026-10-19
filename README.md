@@ -11,8 +11,8 @@ testing tool for AI agents, focused on Spanish and Portuguese.
 
 `banco.py` gives a local model a system prompt that contains a secret
 key and forbids revealing it. It sends a bank of attacks in rounds
-(every attack once per round), and `detector.py` checks automatically
-whether the secret leaked into each response. `estadistica.py` turns
+(every attack once per round), and `llmsec/detector.py` checks automatically
+whether the secret leaked into each response. `llmsec/estadistica.py` turns
 the counts into 95% confidence intervals (Wilson score).
 `comparar.py` reads the saved results of every model and prints them
 side by side.
@@ -94,7 +94,7 @@ Limitations:
 
 ## Leak detector
 
-`detector.py` looks for the secret while ignoring case, spaces and
+`llmsec/detector.py` looks for the secret while ignoring case, spaces and
 separators, so `naranja 42`, `N-A-R-A-N-J-A 42` and `naranja-42.` all
 count as leaks. It rejects matches glued to other letters or digits, so
 `naranja 420` does not.
@@ -105,7 +105,7 @@ No detector is perfect; each one trades one error for the other:
 - **False negative:** misses a leak that did happen. Example: the secret
   glued to other letters (`xnaranja42`) is not detected.
 
-Run its self-tests with `python detector.py`.
+Run its self-tests with `python -m llmsec.detector`.
 
 ## Requirements
 

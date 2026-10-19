@@ -2,7 +2,7 @@ import glob
 import json
 import os
 
-from estadistica import intervalo_wilson
+from llmsec.estadistica import intervalo_wilson
 
 
 def nombre_modelo(archivo):

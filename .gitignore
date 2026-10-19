@@ -2,3 +2,4 @@
 __pycache__/
 resultados*.json
 *.bak
+respaldo/
