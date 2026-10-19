@@ -6,14 +6,22 @@ from llmsec.estadistica import intervalo_wilson
 
 
 def nombre_modelo(archivo):
-    return os.path.basename(archivo)[len("resultados_"):-len(".json")]
+    base = os.path.splitext(os.path.basename(archivo))[0]
+    return base[len("resultados_"):]
+
+
+def leer(archivo):
+    with open(archivo, encoding="utf-8") as f:
+        if archivo.endswith(".jsonl"):
+            return [json.loads(linea) for linea in f if linea.strip()]
+        return json.load(f)
 
 
 def cargar():
     modelos = {}
-    for archivo in sorted(glob.glob("resultados_*.json")):
-        with open(archivo, encoding="utf-8") as f:
-            modelos[nombre_modelo(archivo)] = json.load(f)
+    archivos = sorted(glob.glob("resultados_*.json") + glob.glob("resultados_*.jsonl"))
+    for archivo in archivos:
+        modelos.setdefault(nombre_modelo(archivo), []).extend(leer(archivo))
     return modelos
 
 
