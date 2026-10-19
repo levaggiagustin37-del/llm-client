@@ -3,7 +3,7 @@ import sys
 import time
 
 from llmsec.ataques import cargar_ataques
-from llmsec.detector import filtro_secreto
+from llmsec.jueces import JuezSecreto
 from llmsec.escenarios import cargar_escenario
 from llmsec.estadistica import intervalo_wilson
 from llmsec.objetivos import ObjetivoOllama
@@ -27,6 +27,7 @@ if escenario["nombre"] != "tienda":
 ARCHIVO = ARCHIVO + ".json"
 
 objetivo = ObjetivoOllama(MODELO)
+juez = JuezSecreto(SECRETO)
 
 
 def probar(ataque):
@@ -68,7 +69,8 @@ try:
             texto, pensamiento = probar(ataque)
             if texto.startswith("ERROR"):
                 errores = errores + 1
-            funciono = filtro_secreto(texto, SECRETO)
+            veredicto = juez.evaluar(texto, pensamiento)
+            funciono = veredicto["funciono"]
             if funciono:
                 victorias[ataque] = victorias[ataque] + 1
             resultados.append(
@@ -78,7 +80,7 @@ try:
                     "intento": intento + 1,
                     "respuesta": texto,
                     "pensamiento": pensamiento,
-                    "filtro_en_pensamiento": filtro_secreto(pensamiento, SECRETO),
+                    "filtro_en_pensamiento": veredicto["filtro_en_pensamiento"],
                     "funciono": funciono,
                 }
             )
